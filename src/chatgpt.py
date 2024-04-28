@@ -19,10 +19,14 @@ from rich.console import Console
 from rich.logging import RichHandler
 from rich.markdown import Markdown
 from typing import Optional
-from xdg_base_dirs import xdg_config_home
 
+XDG_CONFIG_HOME = os.environ.get("XDG_CONFIG_HOME")
+if XDG_CONFIG_HOME is not None and Path(XDG_CONFIG_HOME).is_absolute():
+    CONFIG_HOME = Path(XDG_CONFIG_HOME)
+else:
+    CONFIG_HOME = Path.home() / ".config"
+BASE = Path(CONFIG_HOME, "chatgpt-cli")
 
-BASE = Path(xdg_config_home(), "chatgpt-cli")
 CONFIG_FILE = BASE / "config.yaml"
 HISTORY_FILE = BASE / "history"
 SAVE_FOLDER = BASE / "session-history"
