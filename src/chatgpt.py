@@ -383,80 +383,79 @@ def start_prompt(
         messages.pop()
         raise KeyboardInterrupt
 
-    match r.status_code:
-        case 200:
-            response = r.json()
+    if r.status_code == 200:
+        response = r.json()
 
-            message_response = response["choices"][0]["message"]
-            usage_response = response["usage"]
+        message_response = response["choices"][0]["message"]
+        usage_response = response["usage"]
 
-            if not config["non_interactive"]:
-                console.line()
-            if config["markdown"]:
-                print_markdown(message_response["content"].strip(), copyable_blocks)
-            else:
-                print(message_response["content"].strip())
-            if not config["non_interactive"]:
-                console.line()
+        if not config["non_interactive"]:
+            console.line()
+        if config["markdown"]:
+            print_markdown(message_response["content"].strip(), copyable_blocks)
+        else:
+            print(message_response["content"].strip())
+        if not config["non_interactive"]:
+            console.line()
 
-            # Update message history and token counters
-            messages.append(message_response)
-            prompt_tokens += usage_response["prompt_tokens"]
-            completion_tokens += usage_response["completion_tokens"]
-            save_history(model, messages, prompt_tokens, completion_tokens)
+        # Update message history and token counters
+        messages.append(message_response)
+        prompt_tokens += usage_response["prompt_tokens"]
+        completion_tokens += usage_response["completion_tokens"]
+        save_history(model, messages, prompt_tokens, completion_tokens)
 
-            if config["non_interactive"]:
-                # In non-interactive mode there is no looping back for a second prompt, you're done.
+        if config["non_interactive"]:
+            # In non-interactive mode there is no looping back for a second prompt, you're done.
+            raise EOFError
+
+    elif r.status_code == 400:
+        response = r.json()
+        if "error" in response:
+            if response["error"]["code"] == "context_length_exceeded":
+                logger.error(
+                    "[red bold]Maximum context length exceeded",
+                    extra={"highlighter": None},
+                )
                 raise EOFError
+                # TODO: Develop a better strategy to manage this case
+        logger.error("[red bold]Invalid request", extra={"highlighter": None})
+        raise EOFError
 
-        case 400:
-            response = r.json()
-            if "error" in response:
-                if response["error"]["code"] == "context_length_exceeded":
-                    logger.error(
-                        "[red bold]Maximum context length exceeded",
-                        extra={"highlighter": None},
-                    )
-                    raise EOFError
-                    # TODO: Develop a better strategy to manage this case
-            logger.error("[red bold]Invalid request", extra={"highlighter": None})
-            raise EOFError
+    elif r.status_code == 401:
+        logger.error("[red bold]Invalid API Key", extra={"highlighter": None})
+        raise EOFError
 
-        case 401:
-            logger.error("[red bold]Invalid API Key", extra={"highlighter": None})
-            raise EOFError
+    elif r.status_code == 429:
+        logger.error(
+            "[red bold]Rate limit or maximum monthly limit exceeded",
+            extra={"highlighter": None},
+        )
+        messages.pop()
+        raise KeyboardInterrupt
 
-        case 429:
-            logger.error(
-                "[red bold]Rate limit or maximum monthly limit exceeded",
-                extra={"highlighter": None},
-            )
-            messages.pop()
-            raise KeyboardInterrupt
+    elif r.status_code == 500:
+        logger.error(
+            "[red bold]Internal server error, check https://status.openai.com",
+            extra={"highlighter": None},
+        )
+        messages.pop()
+        raise KeyboardInterrupt
 
-        case 500:
-            logger.error(
-                "[red bold]Internal server error, check https://status.openai.com",
-                extra={"highlighter": None},
-            )
-            messages.pop()
-            raise KeyboardInterrupt
+    elif r.status_code == 502 or r.status_code == 503:
+        logger.error(
+            "[red bold]The server seems to be overloaded, try again",
+            extra={"highlighter": None},
+        )
+        messages.pop()
+        raise KeyboardInterrupt
 
-        case 502 | 503:
-            logger.error(
-                "[red bold]The server seems to be overloaded, try again",
-                extra={"highlighter": None},
-            )
-            messages.pop()
-            raise KeyboardInterrupt
-
-        case _:
-            logger.error(
-                f"[red bold]Unknown error, status code {r.status_code}",
-                extra={"highlighter": None},
-            )
-            logger.error(r.json(), extra={"highlighter": None})
-            raise EOFError
+    else:
+        logger.error(
+            f"[red bold]Unknown error, status code {r.status_code}",
+            extra={"highlighter": None},
+        )
+        logger.error(r.json(), extra={"highlighter": None})
+        raise EOFError
 
 
 @click.command()
