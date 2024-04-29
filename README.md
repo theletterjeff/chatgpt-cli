@@ -16,7 +16,7 @@ You may also need to add a payment method, clicking on *Billing --> Payment meth
 
 ## Installation and essential configuration
 
-You need Python (at least version 3.10), Pip and Git installed on your system.
+You need Python (at least version 3.8), Pip and Git installed on your system.
 
 First update Pip (having an older version can cause troubles on some systems):
 
