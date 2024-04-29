@@ -18,7 +18,7 @@ from prompt_toolkit.history import FileHistory
 from rich.console import Console
 from rich.logging import RichHandler
 from rich.markdown import Markdown
-from typing import Optional
+from typing import Optional, Union
 
 XDG_CONFIG_HOME = os.environ.get("XDG_CONFIG_HOME")
 if XDG_CONFIG_HOME is not None and Path(XDG_CONFIG_HOME).is_absolute():
@@ -275,7 +275,7 @@ def start_prompt(
     session: PromptSession,
     config: dict,
     copyable_blocks: Optional[dict],
-    proxy: dict | None,
+    proxy: Union[dict, None],
 ) -> None:
     """
     Ask the user for input, build the request and perform it
